@@ -357,6 +357,24 @@ pub async fn api_video(state: State<'_, Api>, id: i64) -> Result<Value, String> 
 
 #[tauri::command]
 pub async fn api_play(state: State<'_, Api>, id: i64, ep: u32) -> Result<Value, String> {
+    // 优先使用上游最新 playback 接口（POST /api/videos/{id}/episodes/{ep}/playback）
+    if let Ok(mut val) = state
+        .post(&format!("/api/videos/{id}/episodes/{ep}/playback"), None)
+        .await
+    {
+        if let Some(streams) = val.get("streams") {
+            let hevc = streams.get("hevc").and_then(|v| v.as_str()).unwrap_or("");
+            let main = streams.get("main").and_then(|v| v.as_str()).unwrap_or("");
+            if !hevc.is_empty() || !main.is_empty() {
+                if let Some(obj) = val.as_object_mut() {
+                    obj.insert("video_url".to_string(), serde_json::json!(main));
+                    obj.insert("video_url_hevc".to_string(), serde_json::json!(hevc));
+                }
+                return Ok(val);
+            }
+        }
+    }
+    // 降级兜底：老旧接口
     state
         .get(&format!("/api/videos/{id}/play?ep={ep}&page_texts=0"))
         .await
