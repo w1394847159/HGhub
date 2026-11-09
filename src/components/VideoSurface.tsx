@@ -160,7 +160,13 @@ const VideoSurface = forwardRef<VideoHandle, Props>(function VideoSurface(
       loop={loop}
       onClick={onClick}
       className={`w-full h-full bg-black ${fit === "cover" ? "object-cover" : "object-contain"} ${className}`}
-      style={{ opacity: ready ? 1 : 0, transition: "opacity .35s" }}
+      style={{
+        opacity: ready ? 1 : 0,
+        transition: "opacity .35s",
+        imageRendering: "-webkit-optimize-contrast",
+        transform: "translateZ(0)",
+        backfaceVisibility: "hidden",
+      }}
       onLoadedData={(e) => { setReady(true); reapply(e.target as HTMLVideoElement); }}
       onTimeUpdate={(e) => onTime?.((e.target as HTMLVideoElement).currentTime)}
       onLoadedMetadata={(e) => {

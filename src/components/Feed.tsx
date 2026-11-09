@@ -244,7 +244,8 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
         if (!alive) return;
         const anyInfo = info as Record<string, unknown> | undefined;
         const streams = anyInfo?.streams as Record<string, string> | undefined;
-        const targetUrl = streams?.hevc || streams?.main || info?.video_url_hevc || info?.video_url;
+        // 优先选择未过度压缩的 main 流（H.264，码率约 2.6Mbps+），大幅改善画质与色彩；兜底使用极限压缩的 hevc 流（1.3Mbps）
+        const targetUrl = streams?.main || streams?.hevc || info?.video_url || info?.video_url_hevc;
         if (!targetUrl) throw new Error("暂无播放地址");
         setPlayUrls((m) => ({ ...m, [playKey]: targetUrl }));
         addHistory(curId, curEp);

@@ -143,7 +143,7 @@ export async function selfTest(): Promise<string> {
   const steps: string[] = [];
   try {
     const info = await api.play(117, 3);
-    const targetUrl = info?.video_url_hevc || info?.video_url || "";
+    const targetUrl = info?.video_url || info?.video_url_hevc || "";
     steps.push(`play:${targetUrl ? "ok" : "empty"}`);
     const hlsUrl = `${LOCAL}/hls?u=${encodeURIComponent(targetUrl)}`;
     const r1 = await fetch(hlsUrl);
