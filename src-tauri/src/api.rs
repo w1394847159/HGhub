@@ -368,16 +368,24 @@ pub async fn api_play(state: State<'_, Api>, id: i64, ep: u32) -> Result<Value, 
         .post(&format!("/api/videos/{id}/episodes/{ep}/playback"), None)
         .await
     {
-        if let Some(streams) = val.get("streams") {
-            let hevc = streams.get("hevc").and_then(|v| v.as_str()).unwrap_or("");
-            let main = streams.get("main").and_then(|v| v.as_str()).unwrap_or("");
-            if !hevc.is_empty() || !main.is_empty() {
-                if let Some(obj) = val.as_object_mut() {
-                    obj.insert("video_url".to_string(), serde_json::json!(main));
-                    obj.insert("video_url_hevc".to_string(), serde_json::json!(hevc));
+        let (hevc, main) = if let Some(streams) = val.get("streams") {
+            (
+                streams.get("hevc").and_then(|v| v.as_str()).map(str::to_string),
+                streams.get("main").and_then(|v| v.as_str()).map(str::to_string),
+            )
+        } else {
+            (None, None)
+        };
+        if hevc.is_some() || main.is_some() {
+            if let Some(obj) = val.as_object_mut() {
+                if let Some(m) = main {
+                    obj.insert("video_url".to_string(), serde_json::json!(m));
                 }
-                return Ok(val);
+                if let Some(h) = hevc {
+                    obj.insert("video_url_hevc".to_string(), serde_json::json!(h));
+                }
             }
+            return Ok(val);
         }
     }
     // 降级兜底：老旧接口
