@@ -7,10 +7,12 @@
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
-/// 固定线路：写死在客户端里，不依赖任何外部页面。
-pub const FIXED: [(&str, &str); 2] = [
-    ("固定线路 1", "https://huangguoai.com"),
-    ("固定线路 2", "https://huangguoai.ai"),
+/// 固定线路：包含国内免代理直连镜像与海外固定线路。
+pub const FIXED: [(&str, &str); 4] = [
+    ("国内直连 1 (清华镜像)", "https://thu.gitiecgad.cc"),
+    ("国内直连 2 (北大镜像)", "https://pku.gitiecgad.cc"),
+    ("海外线路 1 (需代理)", "https://huangguoai.com"),
+    ("海外线路 2 (需代理)", "https://huangguoai.ai"),
 ];
 
 const PUBLISH_PAGE: &str = "https://huangguoai.pages.dev/";

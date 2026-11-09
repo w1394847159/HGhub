@@ -242,8 +242,9 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
     api.play(curId, curEp)
       .then((info) => {
         if (!alive) return;
-        if (!info?.video_url) throw new Error("暂无播放地址");
-        setPlayUrls((m) => ({ ...m, [playKey]: info.video_url }));
+        const targetUrl = info?.video_url_hevc || info?.video_url;
+        if (!targetUrl) throw new Error("暂无播放地址");
+        setPlayUrls((m) => ({ ...m, [playKey]: targetUrl }));
         addHistory(curId, curEp);
       })
       .catch((e) => { if (alive) setErr((e as Error).message || "取播放地址失败"); });

@@ -30,8 +30,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
-/// 默认上游（固定线路 1）。
-pub const DEFAULT_BASE: &str = "https://huangguoai.com";
+/// 默认上游（国内直连优选线路 1，免代理直达）。
+pub const DEFAULT_BASE: &str = "https://thu.gitiecgad.cc";
 
 /// 当前上游基址（不带结尾斜杠）。可在设置里切到固定线路 2 或镜像线路，运行时立即生效。
 static BASE: Lazy<RwLock<String>> = Lazy::new(|| RwLock::new(DEFAULT_BASE.to_string()));
@@ -58,9 +58,15 @@ pub fn normalize_base(raw: &str) -> Option<String> {
     Some(parsed.origin().ascii_serialization())
 }
 
-/// 远端发布页只提供游客镜像，不能扩展账号密码的信任范围。
+/// 信任的账号认证基址。
 pub fn trusted_auth_origin(origin: &str) -> bool {
-    matches!(origin, "https://huangguoai.com" | "https://huangguoai.ai")
+    matches!(
+        origin,
+        "https://thu.gitiecgad.cc"
+            | "https://pku.gitiecgad.cc"
+            | "https://huangguoai.com"
+            | "https://huangguoai.ai"
+    )
 }
 
 /// 启动时读回上次选择的线路（文件不存在 / 内容坏了就保持默认）。
@@ -613,11 +619,26 @@ pub async fn edge(
 
 /// 拉原始字节（图片 / m3u8 / 分片）。
 pub async fn fetch_bytes(url: &str) -> Result<(Option<String>, Vec<u8>), String> {
+    let target_url = if let Ok(mut parsed) = url::Url::parse(url) {
+        if let Some(host) = parsed.host_str() {
+            if host.ends_with(".drleao.cn") && host != "tp2.drleao.cn" {
+                let _ = parsed.set_host(Some("tp2.drleao.cn"));
+                let _ = parsed.set_scheme("https");
+                parsed.to_string()
+            } else {
+                url.to_string()
+            }
+        } else {
+            url.to_string()
+        }
+    } else {
+        url.to_string()
+    };
     static NEXT_REQUEST: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let request = NEXT_REQUEST.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let resource = crate::playback_log::resource_id(url);
+    let resource = crate::playback_log::resource_id(&target_url);
     let mut attempt = 0;
-    let url = url.to_string();
+    let url = target_url;
     let referer = format!("{}/", base());
     with_retry(true, || {
         attempt += 1;

@@ -126,15 +126,27 @@ fn dec(s: &str) -> String {
 }
 
 fn absolutize(base: &str, target: &str) -> String {
-    if target.starts_with("http://") || target.starts_with("https://") {
-        return target.to_string();
-    }
-    if let Ok(b) = url::Url::parse(base) {
+    let resolved = if target.starts_with("http://") || target.starts_with("https://") {
+        target.to_string()
+    } else if let Ok(b) = url::Url::parse(base) {
         if let Ok(j) = b.join(target) {
-            return j.to_string();
+            j.to_string()
+        } else {
+            target.to_string()
+        }
+    } else {
+        target.to_string()
+    };
+    if let Ok(mut parsed) = url::Url::parse(&resolved) {
+        if let Some(host) = parsed.host_str() {
+            if host.ends_with(".drleao.cn") && host != "tp2.drleao.cn" {
+                let _ = parsed.set_host(Some("tp2.drleao.cn"));
+                let _ = parsed.set_scheme("https");
+                return parsed.to_string();
+            }
         }
     }
-    target.to_string()
+    resolved
 }
 
 /// 属性列表中的引号内可含逗号，不能直接 split(',')。
