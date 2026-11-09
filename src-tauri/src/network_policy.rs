@@ -43,7 +43,7 @@ pub fn cli_strict_override() -> Option<bool> {
 }
 
 static STRICT: Lazy<AtomicBool> =
-    Lazy::new(|| AtomicBool::new(cli_strict_override().unwrap_or(true)));
+    Lazy::new(|| AtomicBool::new(cli_strict_override().unwrap_or(false)));
 static SECURITY_FILE: Lazy<RwLock<Option<PathBuf>>> = Lazy::new(|| RwLock::new(None));
 
 /// 当前是否启用严格安全模式（默认开启）。
@@ -184,16 +184,17 @@ pub fn check_addresses_with_mode(addrs: &[SocketAddr], strict: bool) -> Result<(
     Ok(())
 }
 
-/// 与浏览器一致优先 IPv6：连接器以首个地址的协议族为首选，另一族在其失败后（Happy Eyeballs）兜底。
-/// 普通排序会把 IPv4 排在前面；共享 IPv4 出口被上游接口限流时，请求会挂起或返回 502/503，
-/// 而同一网络下浏览器走 IPv6 一切正常。
-fn sort_ipv6_first(addrs: &mut [SocketAddr]) {
-    addrs.sort_unstable_by_key(|addr| (addr.is_ipv4(), *addr));
+/// 优先使用 IPv4：国内移动蜂窝网络或手机代理环境下，海外 IPv6 极易触发 GFW TCP RST (os error 104)。
+/// 只要存在 IPv4（包括 FakeIP 198.18.x.x），直接剥除所有不稳定公网 IPv6。
+fn prefer_ipv4_and_sort(addrs: &mut Vec<SocketAddr>) {
+    if addrs.iter().any(|addr| addr.is_ipv4()) {
+        addrs.retain(|addr| addr.is_ipv4());
+    }
 }
 
 pub async fn resolve_target(url: &Url, strict: bool) -> Result<Vec<SocketAddr>, String> {
     let port = url.port_or_known_default().ok_or("目标端口无效")?;
-    let mut addrs = match url.host().ok_or("目标缺少主机名")? {
+    let mut addrs: Vec<SocketAddr> = match url.host().ok_or("目标缺少主机名")? {
         Host::Ipv4(ip) => vec![SocketAddr::new(ip.into(), port)],
         Host::Ipv6(ip) => vec![SocketAddr::new(ip.into(), port)],
         Host::Domain(host) => tokio::time::timeout(
@@ -205,7 +206,7 @@ pub async fn resolve_target(url: &Url, strict: bool) -> Result<Vec<SocketAddr>, 
         .map_err(|_| "DNS 解析失败")?
         .collect(),
     };
-    sort_ipv6_first(&mut addrs);
+    prefer_ipv4_and_sort(&mut addrs);
     addrs.dedup();
     check_addresses_with_mode(&addrs, strict)?;
     Ok(addrs)

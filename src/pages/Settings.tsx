@@ -122,7 +122,7 @@ export default function Settings({ onBack, wide }: { onBack: () => void; wide: b
                 <div className="text-[10.5px] text-mut">
                   {cliRelaxed
                     ? "已由启动参数 --no-strict 切换为兼容模式；可手动重新开启"
-                    : "默认开启，防上游投毒与内网探测；若导致正文或特殊代理异常可关闭（或用 --no-strict 启动）"}
+                    : "默认关闭以兼容各类网络与代理环境；若需强校验可手动开启"}
                 </div>
               </div>
               <Toggle

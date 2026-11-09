@@ -32,3 +32,5 @@ docs/API.md
 # Agent instructions (local)
 AGENTS.md
 releases/
+watch_and_deliver.py
+__pycache__/

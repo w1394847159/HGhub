@@ -3,8 +3,8 @@ import DOMPurify from "dompurify";
 
 /** 站点根地址：正文里的相对路径要补全 */
 const SITE = "https://huangguoai.com";
-// 启动前默认严格；有效状态只由 Rust app_boot / security_set 返回值更新。
-let strictSecurity = true;
+// 启动前默认兼容宽松模式，确保各类网络与代理正常连通；有效状态只由 Rust app_boot / security_set 返回值更新。
+let strictSecurity = false;
 
 /** 当前是否启用严格安全模式（默认开启）。 */
 export function isStrictSecurity(): boolean {
